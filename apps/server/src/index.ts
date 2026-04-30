@@ -3,6 +3,7 @@ import { env } from "@test-evals/env/server";
 import { Hono } from "hono";
 import { cors } from "hono/cors";
 import { logger } from "hono/logger";
+import runs from "./routes/runs";
 
 const app = new Hono();
 
@@ -17,10 +18,15 @@ app.use(
   }),
 );
 
+// Auth routes (kept but not required for eval endpoints)
 app.on(["POST", "GET"], "/api/auth/*", (c) => auth.handler(c.req.raw));
 
+// Eval API routes — no auth required
+app.route("/api/v1", runs);
+
+// Health check
 app.get("/", (c) => {
-  return c.text("OK");
+  return c.json({ status: "OK", version: "1.0.0" });
 });
 
 export default app;

@@ -105,6 +105,9 @@ async function testBedrockConnection() {
     console.log();
   } catch (error: any) {
     console.error("  ❌ Connection FAILED!");
+    console.error(`  RAW ERROR NAME: ${error.name}`);
+    console.error(`  RAW ERROR MSG:  ${error.message}`);
+    console.error(`  RAW FULL:       ${JSON.stringify(error, null, 2)}`);
     console.error();
 
     if (
