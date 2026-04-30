@@ -32,9 +32,13 @@
     "db:push": "turbo -F @test-evals/db db:push",
     "db:studio": "turbo -F @test-evals/db db:studio",
     "db:generate": "turbo -F @test-evals/db db:generate",
-    "db:migrate": "turbo -F @test-evals/db db:migrate"
+    "db:migrate": "turbo -F @test-evals/db db:migrate",
+    "test:bedrock": "bun run scripts/test-bedrock.ts"
   },
   "dependencies": {
+    "@anthropic-ai/bedrock-sdk": "^0.29.1",
+    "@aws-sdk/client-bedrock-runtime": "^3.1039.0",
+    "@smithy/node-http-handler": "^4.6.1",
     "@test-evals/env": "workspace:*",
     "dotenv": "catalog:",
     "zod": "catalog:"
