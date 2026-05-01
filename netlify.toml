@@ -1,11 +1,14 @@
 [build]
   base = "apps/web"
   command = "bun run build"
-  # publish is intentionally omitted so the Netlify Next.js plugin can auto-configure it
 
 [build.environment]
   NEXT_TELEMETRY_DISABLED = "1"
 
-[functions]
-  node_bundler = "esbuild"
-  included_files = ["../../data/**"]
+[[plugins]]
+  package = "@netlify/plugin-nextjs"
+
+[[redirects]]
+  from = "/api/*"
+  to = "/.netlify/functions/api"
+  status = 200

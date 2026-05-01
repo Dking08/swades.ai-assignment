@@ -64,6 +64,8 @@
         "zod": "catalog:",
       },
       "devDependencies": {
+        "@netlify/functions": "^5.2.0",
+        "@netlify/plugin-nextjs": "^5.15.10",
         "@tailwindcss/postcss": "^4.1.18",
         "@test-evals/config": "workspace:*",
         "@types/node": "^20",
@@ -519,6 +521,12 @@
     "@mswjs/interceptors": ["@mswjs/interceptors@0.41.7", "", { "dependencies": { "@open-draft/deferred-promise": "^2.2.0", "@open-draft/logger": "^0.3.0", "@open-draft/until": "^2.0.0", "is-node-process": "^1.2.0", "outvariant": "^1.4.3", "strict-event-emitter": "^0.5.1" } }, "sha512-D0nkS5+sx87mYpxFqASImCineYoEl9wGlUPrzkuS0ohzG8wfophLpE+I76qGJ0slLAVI19do5SI9pWJNCVf4fg=="],
 
     "@napi-rs/wasm-runtime": ["@napi-rs/wasm-runtime@1.1.4", "", { "dependencies": { "@tybys/wasm-util": "^0.10.1" }, "peerDependencies": { "@emnapi/core": "^1.7.1", "@emnapi/runtime": "^1.7.1" } }, "sha512-3NQNNgA1YSlJb/kMH1ildASP9HW7/7kYnRI2szWJaofaS1hWmbGI4H+d3+22aGzXXN9IJ+n+GiFVcGipJP18ow=="],
+
+    "@netlify/functions": ["@netlify/functions@5.2.0", "", { "dependencies": { "@netlify/types": "2.6.0" } }, "sha512-Pj93qeQd1tkQ5xm9gWJZmBf/1riLYqYHc0OzFukrJomrj82Ott53Rr/Q88H1ms5cF+P5QXRKWmA2JSxSybKfjA=="],
+
+    "@netlify/plugin-nextjs": ["@netlify/plugin-nextjs@5.15.10", "", {}, "sha512-Mf64nZvoDRwRCMdCjNpxCptWzpF0Vb5pcgZEoZhofI1Yi1UhnXSnxqpMHsKovl9LfCm375AjUbEgH3R3gGEBUw=="],
+
+    "@netlify/types": ["@netlify/types@2.6.0", "", {}, "sha512-yD20EizHJDQxajJ66Vo8RTwLwR2jMNVxufPG8MHd2AScX8jW4z0VPnnJHArq2GYPFTFZRHmiAhDrXr5m8zof6w=="],
 
     "@next/env": ["@next/env@16.2.4", "", {}, "sha512-dKkkOzOSwFYe5RX6y26fZgkSpVAlIOJKQHIiydQcrWH6y/97+RceSOAdjZ14Qa3zLduVUy0TXcn+EiM6t4rPgw=="],
 
