@@ -6,14 +6,13 @@ import { randomUUID } from "crypto";
 import { eq, and } from "drizzle-orm";
 import { db } from "@test-evals/db";
 import { evalRuns, evalCases, evalTraces } from "@test-evals/db/schema";
-import { extractWithRetry } from "@test-evals/llm";
+import { detectProviderFromEnv, extractWithRetry } from "@test-evals/llm";
 import { computePromptHash } from "@test-evals/llm/prompt-hash";
+import type { LLMProviderName } from "@test-evals/llm";
 import type {
   PromptStrategy,
   CaseScores,
   HallucinationItem,
-  RunAggregates,
-  TokenUsage,
   SSEEvent,
 } from "@test-evals/shared";
 import {
@@ -22,6 +21,7 @@ import {
   RATE_LIMIT_MAX_DELAY_MS,
   HAIKU_INPUT_PRICE_PER_1M,
   HAIKU_OUTPUT_PRICE_PER_1M,
+  HAIKU_45_TOTAL_PRICE_PER_1M,
 } from "@test-evals/shared";
 import {
   scoreCase,
@@ -96,7 +96,22 @@ function emitEvent(runId: string, event: SSEEvent): void {
 
 // ─── Cost Calculation ──────────────────────────────────────────────────────
 
-function computeCost(inputTokens: number, outputTokens: number): number {
+const HAIKU_45_MODEL_RE = /haiku[-_.]?4[-_.]?5/i;
+
+function isHaiku45Model(modelId: string): boolean {
+  return HAIKU_45_MODEL_RE.test(modelId);
+}
+
+function computeCost(
+  inputTokens: number,
+  outputTokens: number,
+  modelId: string
+): number {
+  if (isHaiku45Model(modelId)) {
+    const totalTokens = inputTokens + outputTokens;
+    return (totalTokens / 1_000_000) * HAIKU_45_TOTAL_PRICE_PER_1M;
+  }
+
   return (
     (inputTokens / 1_000_000) * HAIKU_INPUT_PRICE_PER_1M +
     (outputTokens / 1_000_000) * HAIKU_OUTPUT_PRICE_PER_1M
@@ -138,12 +153,13 @@ export interface StartRunOptions {
   strategy: PromptStrategy;
   model: string;
   region: string;
+  provider?: LLMProviderName;
   datasetFilter?: string[]; // optional transcript IDs to filter
   force?: boolean;
 }
 
 export async function startRun(options: StartRunOptions): Promise<string> {
-  const { strategy, model, region, datasetFilter, force = false } = options;
+  const { strategy, model, datasetFilter } = options;
 
   const runId = randomUUID();
   const promptHash = computePromptHash(strategy);
@@ -221,6 +237,7 @@ export async function resumeRun(
     strategy: run.strategy as PromptStrategy,
     model: run.model,
     region,
+    provider: detectProviderFromEnv() ?? undefined,
   }).catch((err) => {
     console.error(`Resume of run ${runId} failed:`, err);
   });
@@ -233,7 +250,7 @@ async function processRun(
   transcriptIds: string[],
   options: StartRunOptions
 ): Promise<void> {
-  const { strategy, model, region, force = false } = options;
+  const { strategy, model, region, provider, force = false } = options;
   const semaphore = new Semaphore(MAX_CONCURRENT_CASES);
   const startTime = Date.now();
 
@@ -298,7 +315,12 @@ async function processRun(
 
         // Extract with retry + rate limit backoff
         const result = await withRateLimitRetry(() =>
-          extractWithRetry(transcript, { strategy })
+          extractWithRetry(transcript, {
+            strategy,
+            modelId: model,
+            provider,
+            region,
+          })
         );
 
         totalInputTokens += result.totalInputTokens;
@@ -391,7 +413,11 @@ async function processRun(
     // Compute final aggregates
     const aggregates = computeAggregates(allCaseData);
     const wallTimeMs = Date.now() - startTime;
-    const totalCost = computeCost(totalInputTokens, totalOutputTokens);
+    const totalCost = computeCost(
+      totalInputTokens,
+      totalOutputTokens,
+      model
+    );
 
     await db
       .update(evalRuns)

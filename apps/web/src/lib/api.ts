@@ -10,10 +10,11 @@ import type {
   CaseScores,
 } from "@test-evals/shared";
 
-const BASE_URL = process.env.NEXT_PUBLIC_SERVER_URL || "http://localhost:8787";
+export const API_BASE_URL =
+  process.env.NEXT_PUBLIC_SERVER_URL || "http://localhost:3000";
 
 async function apiFetch<T>(path: string, options?: RequestInit): Promise<T> {
-  const res = await fetch(`${BASE_URL}${path}`, {
+  const res = await fetch(`${API_BASE_URL}${path}`, {
     ...options,
     headers: {
       "Content-Type": "application/json",
@@ -92,7 +93,7 @@ export function subscribeToRunStream(
   onEvent: (event: { type: string; data: unknown }) => void,
   onError?: (err: Error) => void
 ): () => void {
-  const es = new EventSource(`${BASE_URL}/api/v1/runs/${runId}/stream`);
+  const es = new EventSource(`${API_BASE_URL}/api/v1/runs/${runId}/stream`);
 
   const handleEvent = (e: MessageEvent) => {
     try {

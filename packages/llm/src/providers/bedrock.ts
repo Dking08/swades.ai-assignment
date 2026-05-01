@@ -64,7 +64,7 @@ export class BedrockProvider implements LLMProvider {
             toolSpec: {
               name: toolSchema.name,
               description: toolSchema.description,
-              inputSchema: { json: toolSchema.inputSchema },
+              inputSchema: { json: toolSchema.inputSchema as any },
             },
           },
         ],
@@ -169,7 +169,7 @@ export class BedrockProvider implements LLMProvider {
             toolSpec: {
               name: toolSchema.name,
               description: toolSchema.description,
-              inputSchema: { json: toolSchema.inputSchema },
+              inputSchema: { json: toolSchema.inputSchema as any },
             },
           },
         ],

@@ -11,9 +11,13 @@ function formatDuration(ms: number | null): string {
   return `${(ms / 1000).toFixed(1)}s`;
 }
 
-function formatCost(usd: number | null): string {
+const HAIKU_45_MODEL_RE = /haiku[-_.]?4[-_.]?5/i;
+
+function formatCost(usd: number | null, model?: string): string {
   if (usd === null || usd === undefined) return "—";
-  return `$${usd.toFixed(4)}`;
+  const base = `$${usd.toFixed(4)}`;
+  if (!model || !HAIKU_45_MODEL_RE.test(model)) return base;
+  return `${base} @ $5/M`;
 }
 
 function StatusBadge({ status }: { status: string }) {
@@ -223,7 +227,7 @@ export default function EvalsPage() {
                     <ScoreBadge value={run.aggregates?.diagnoses_f1_avg} />
                   </td>
                   <td className="px-4 py-3 text-right font-mono text-zinc-300">
-                    {formatCost(run.total_cost_usd)}
+                    {formatCost(run.total_cost_usd, run.model)}
                   </td>
                   <td className="px-4 py-3 text-right font-mono text-zinc-300">
                     {formatDuration(run.wall_time_ms)}

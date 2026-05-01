@@ -107,16 +107,108 @@ function scoreCase(pred: ClinicalExtraction, gold: ClinicalExtraction): CaseScor
 
 // --- CLI Logic ---
 
+function readFlagValues(args: string[], flag: string): string[] {
+  const values: string[] = [];
+
+  for (let i = 0; i < args.length; i++) {
+    const arg = args[i];
+    if (!arg) continue;
+
+    if (arg === flag) {
+      let j = i + 1;
+      while (j < args.length && !args[j]!.startsWith("--")) {
+        values.push(args[j]!);
+        j++;
+      }
+      i = j - 1;
+      continue;
+    }
+
+    if (arg.startsWith(`${flag}=`)) {
+      values.push(arg.slice(flag.length + 1));
+
+      let j = i + 1;
+      while (j < args.length && !args[j]!.startsWith("--")) {
+        values.push(args[j]!);
+        j++;
+      }
+      i = j - 1;
+    }
+  }
+
+  return values;
+}
+
+function readFlagValue(args: string[], flag: string): string | undefined {
+  return readFlagValues(args, flag).at(0);
+}
+
+function normalizeCaseId(value: string): string | null {
+  const cleaned = value
+    .trim()
+    .replace(/^['"]|['"]$/g, "")
+    .replace(/\.(txt|json)$/i, "");
+
+  if (!cleaned) return null;
+
+  const caseMatch = cleaned.match(/^case[_-]?(\d+)$/i);
+  if (caseMatch) {
+    return `case_${caseMatch[1]!.padStart(3, "0")}`;
+  }
+
+  const numberMatch = cleaned.match(/^\d+$/);
+  if (numberMatch) {
+    return `case_${cleaned.padStart(3, "0")}`;
+  }
+
+  return cleaned;
+}
+
+function parseCaseFilter(args: string[]): string[] | undefined {
+  const values = readFlagValues(args, "--filter")
+    .flatMap((value) => value.split(/[,\s]+/))
+    .map(normalizeCaseId)
+    .filter((value): value is string => Boolean(value));
+
+  return values.length > 0 ? [...new Set(values)] : undefined;
+}
+
 async function main() {
   const args = process.argv.slice(2);
-  const strategyArg = args.find((a) => a.startsWith("--strategy="))?.split("=")[1] as PromptStrategy | undefined;
-  const filterArg = args.find((a) => a.startsWith("--filter="))?.split("=")[1];
-  const modelArg = args.find((a) => a.startsWith("--model="))?.split("=")[1];
+  const strategyArg = readFlagValue(args, "--strategy") as PromptStrategy | undefined;
+  const filterIds = parseCaseFilter(args);
+  const modelArg = readFlagValue(args, "--model");
 
   const strategy = strategyArg ?? "zero_shot";
   if (!PROMPT_STRATEGIES.includes(strategy)) {
     console.error(`Invalid strategy: ${strategy}. Must be: ${PROMPT_STRATEGIES.join(", ")}`);
     process.exit(1);
+  }
+
+  const dataDir = path.resolve(__dirname, "../data");
+
+  // Load transcripts
+  const transcriptFiles = (await readdir(path.join(dataDir, "transcripts")))
+    .filter((f) => f.endsWith(".txt"))
+    .map((f) => f.replace(".txt", ""))
+    .sort();
+
+  let caseIds = transcriptFiles;
+  if (filterIds) {
+    const filterSet = new Set(filterIds);
+    caseIds = caseIds.filter((id) => filterSet.has(id));
+
+    if (caseIds.length === 0) {
+      console.error(`Filter matched 0 cases.`);
+      console.error(`Requested: ${filterIds.join(", ")}`);
+      console.error(`Available examples: ${transcriptFiles.slice(0, 5).join(", ")}`);
+      process.exit(1);
+    }
+  }
+
+  if (args.includes("--list-cases") || args.includes("--dry-run")) {
+    console.log(caseIds.join("\n"));
+    return;
   }
 
   // Auto-detect provider
@@ -126,7 +218,6 @@ async function main() {
     process.exit(1);
   }
   const modelId = modelArg ?? getModelId(providerName);
-  const dataDir = path.resolve(__dirname, "../data");
 
   console.log("╔══════════════════════════════════════════════╗");
   console.log("║        HEALOSBENCH — CLI Evaluation          ║");
@@ -136,18 +227,6 @@ async function main() {
   console.log(`  Provider:  ${providerName}`);
   console.log(`  Model:     ${modelId}`);
   console.log();
-
-  // Load transcripts
-  const transcriptFiles = (await readdir(path.join(dataDir, "transcripts")))
-    .filter((f) => f.endsWith(".txt"))
-    .map((f) => f.replace(".txt", ""))
-    .sort();
-
-  let caseIds = transcriptFiles;
-  if (filterArg) {
-    const filterSet = new Set(filterArg.split(","));
-    caseIds = caseIds.filter((id) => filterSet.has(id));
-  }
 
   console.log(`  Cases:     ${caseIds.length}`);
   console.log();

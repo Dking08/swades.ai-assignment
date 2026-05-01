@@ -3,7 +3,7 @@
  */
 import { Hono } from "hono";
 import { streamSSE } from "hono/streaming";
-import { eq, desc, and } from "drizzle-orm";
+import { eq, desc } from "drizzle-orm";
 import { db } from "@test-evals/db";
 import { evalRuns, evalCases, evalTraces } from "@test-evals/db/schema";
 import { env } from "@test-evals/env/server";
@@ -50,6 +50,7 @@ runs.post("/runs", async (c) => {
     strategy: body.strategy,
     model: modelId,
     region: env.AWS_REGION,
+    provider: providerName,
     datasetFilter: body.dataset_filter,
     force: body.force,
   });

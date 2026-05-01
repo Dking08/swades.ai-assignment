@@ -19,6 +19,15 @@ function ScoreCell({ value, label }: { value: number | null | undefined; label?:
   );
 }
 
+const HAIKU_45_MODEL_RE = /haiku[-_.]?4[-_.]?5/i;
+
+function formatCost(usd: number | null, model?: string): string {
+  if (usd === null || usd === undefined) return "—";
+  const base = `$${usd.toFixed(4)}`;
+  if (!model || !HAIKU_45_MODEL_RE.test(model)) return base;
+  return `${base} @ $5/M`;
+}
+
 type RunDetail = Awaited<ReturnType<typeof getRun>>;
 
 export default function RunDetailPage() {
@@ -140,7 +149,7 @@ export default function RunDetailPage() {
         <span>Model: <span className="text-zinc-200 font-mono text-xs">{run.model}</span></span>
         <span>Cases: <span className="text-zinc-200">{run.completed_cases}/{run.total_cases}</span></span>
         {run.total_cost_usd !== null && (
-          <span>Cost: <span className="text-zinc-200 font-mono">${run.total_cost_usd?.toFixed(4)}</span></span>
+          <span>Cost: <span className="text-zinc-200 font-mono">{formatCost(run.total_cost_usd, run.model)}</span></span>
         )}
         {run.wall_time_ms && (
           <span>Duration: <span className="text-zinc-200 font-mono">{(run.wall_time_ms / 1000).toFixed(1)}s</span></span>

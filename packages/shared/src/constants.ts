@@ -4,6 +4,8 @@ export const HAIKU_INPUT_PRICE_PER_1M = 0.25;
 export const HAIKU_OUTPUT_PRICE_PER_1M = 1.25;
 export const HAIKU_CACHE_WRITE_PRICE_PER_1M = 0.30;
 export const HAIKU_CACHE_READ_PRICE_PER_1M = 0.03;
+// Claude Haiku 4.5 (flat per 1M tokens)
+export const HAIKU_45_TOTAL_PRICE_PER_1M = 5;
 
 // ─── Concurrency ───────────────────────────────────────────────────────────
 export const MAX_CONCURRENT_CASES = 5;
