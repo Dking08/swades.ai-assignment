@@ -6,7 +6,8 @@ export const env = createEnv({
     NEXT_PUBLIC_SERVER_URL: z.url(),
   },
   runtimeEnv: {
-    NEXT_PUBLIC_SERVER_URL: process.env.NEXT_PUBLIC_SERVER_URL,
+    NEXT_PUBLIC_SERVER_URL:
+      process.env.NEXT_PUBLIC_SERVER_URL ?? "http://localhost:3000",
   },
   emptyStringAsUndefined: true,
 });

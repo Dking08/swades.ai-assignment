@@ -1,5 +1,94 @@
 # HEALOSBENCH — Implementation Notes
 
+## Final Note for Evaluators
+
+### Brief Project Description
+
+HEALOSBENCH is a repeatable evaluation harness for LLM-powered structured clinical extraction. It loads synthetic doctor-patient transcripts, forces the model to produce schema-conformant JSON, retries invalid outputs with validation feedback, scores each extraction against gold labels with field-appropriate metrics, persists run/case/trace data, and exposes a dashboard for inspecting runs and comparing prompt strategies.
+
+The core workflow is:
+1. Select a prompt strategy (`zero_shot`, `few_shot`, or `cot`)
+2. Run the extractor over selected or full transcript sets
+3. Validate and retry outputs through tool/function calling
+4. Score predictions against gold standards
+5. Review aggregate scores, case-level failures, hallucination flags, and LLM traces in the dashboard
+
+### Provider Choice Note
+
+I initially implemented Amazon Bedrock support because direct Claude Haiku access through Anthropic requires paid API funds, while I already had AWS credits available. Using Bedrock let me build and test the Claude/Haiku path without spending additional personal funds. The project also supports direct Anthropic and Gemini providers through the same provider interface, so the evaluator can choose whichever credential path is easiest to run.
+
+### Tech Stack Used
+
+| Layer | Technology |
+|---|---|
+| Language/runtime | TypeScript, Bun |
+| Monorepo/build | Bun workspaces, Turborepo |
+| Backend API | Hono |
+| Frontend | Next.js 16, React 19 |
+| Styling/UI | Tailwind CSS v4, shadcn-style shared UI primitives, lucide-react |
+| Database | PostgreSQL, Drizzle ORM |
+| Auth | better-auth |
+| LLM providers | Amazon Bedrock, Anthropic SDK, Google Gemini |
+| Validation/eval | AJV JSON Schema validation, fuzzball fuzzy matching |
+| Testing | Bun test |
+| Deployment config | Netlify config for the web dashboard |
+
+### Additional Notes / Instructions to Run
+
+Required local services:
+- PostgreSQL must be running
+- `apps/server/.env` must include `DATABASE_URL`, auth config, CORS config, and at least one LLM provider key
+- `apps/web/.env` should set `NEXT_PUBLIC_SERVER_URL=http://localhost:3000`
+
+Local setup:
+
+```bash
+bun install
+docker compose up -d
+bun run db:push
+bun run dev
+```
+
+Useful commands:
+
+```bash
+# CLI eval
+bun run eval -- --strategy=zero_shot
+bun run eval -- --strategy=few_shot --filter=case_001,case_002,case_003
+bun run eval -- --strategy=zero_shot --filter=case_001,case_002 --dry-run
+
+# Tests and checks
+bun test tests/
+bun run check-types
+bun run build
+```
+
+Ports:
+- API server: `http://localhost:3000`
+- Dashboard: `http://localhost:3001`
+
+### Netlify Deployment Notes
+
+I added `netlify.toml` for deploying the Next.js dashboard. Netlify should build the web app with:
+
+```bash
+bun run build:web
+```
+
+and publish:
+
+```bash
+apps/web/.next
+```
+
+Important: this repository has a separate Hono API server that performs database writes, SSE streaming, and LLM calls. The dashboard can be hosted on Netlify, but the API should be deployed separately on a Node/Bun-capable server or container platform with PostgreSQL access. In Netlify, set:
+
+```env
+NEXT_PUBLIC_SERVER_URL=https://your-api-host.example.com
+```
+
+Do not put LLM provider keys in Netlify frontend environment variables. LLM keys belong only in the server/API deployment.
+
 ## Hard Requirements Compliance
 
 ### 1. Tool Use / Structured Output (✅)
@@ -232,4 +321,3 @@ bun test tests/
 # View DB (Drizzle Studio)
 bun run db:studio
 ```
-
