@@ -2,11 +2,14 @@
  * Dataset service — load transcripts and gold standards from disk.
  */
 import { readdir, readFile } from "fs/promises";
+import { existsSync } from "fs";
 import { join } from "path";
 import type { ClinicalExtraction } from "@test-evals/shared";
 
 // Resolve data directory relative to the monorepo root
-const DATA_DIR = join(import.meta.dir, "../../../../data");
+const DATA_DIR = existsSync(join(process.cwd(), "data"))
+  ? join(process.cwd(), "data")
+  : join(import.meta.dir, "../../../../data");
 
 export async function listTranscriptIds(): Promise<string[]> {
   const files = await readdir(join(DATA_DIR, "transcripts"));

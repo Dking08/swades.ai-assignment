@@ -24,7 +24,7 @@ export default function Home() {
   const [apiStatus, setApiStatus] = React.useState<string>("Checking...");
 
   React.useEffect(() => {
-    fetch(API_BASE_URL)
+    fetch(`${API_BASE_URL}/api/health`)
       .then((res) => res.json())
       .then((data) => setApiStatus(`Online - ${data.version}`))
       .catch(() => setApiStatus("Offline"));

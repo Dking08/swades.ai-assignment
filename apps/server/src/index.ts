@@ -25,6 +25,10 @@ app.on(["POST", "GET"], "/api/auth/*", (c) => auth.handler(c.req.raw));
 app.route("/api/v1", runs);
 
 // Health check
+app.get("/api/health", (c) => {
+  return c.json({ status: "OK", version: "1.0.0" });
+});
+
 app.get("/", (c) => {
   return c.json({ status: "OK", version: "1.0.0" });
 });

@@ -26,6 +26,14 @@ import { loadTranscript } from "../services/dataset.service";
 
 const runs = new Hono();
 
+type WaitUntil = (promise: Promise<unknown>) => void;
+
+function getWaitUntil(c: { env?: unknown }): WaitUntil | undefined {
+  const netlifyContext = (c.env as { netlifyContext?: { waitUntil?: WaitUntil } } | undefined)
+    ?.netlifyContext;
+  return netlifyContext?.waitUntil?.bind(netlifyContext);
+}
+
 // ─── POST /runs — Start a new eval run ─────────────────────────────────────
 runs.post("/runs", async (c) => {
   const body = await c.req.json<{
@@ -51,6 +59,7 @@ runs.post("/runs", async (c) => {
     model: modelId,
     region: env.AWS_REGION,
     provider: providerName,
+    waitUntil: getWaitUntil(c),
     datasetFilter: body.dataset_filter,
     force: body.force,
   });

@@ -69,7 +69,9 @@ Ports:
 
 ### Netlify Deployment Notes
 
-I added `netlify.toml` for deploying the Next.js dashboard. Netlify should build the web app with:
+I added `netlify.toml` for hosting both the Next.js dashboard and the Hono API on the same Netlify site.
+
+Netlify should build the web app with:
 
 ```bash
 bun run build:web
@@ -81,13 +83,41 @@ and publish:
 apps/web/.next
 ```
 
-Important: this repository has a separate Hono API server that performs database writes, SSE streaming, and LLM calls. The dashboard can be hosted on Netlify, but the API should be deployed separately on a Node/Bun-capable server or container platform with PostgreSQL access. In Netlify, set:
+The API is exposed through a Netlify Function at `netlify/functions/api.ts`, with:
 
-```env
-NEXT_PUBLIC_SERVER_URL=https://your-api-host.example.com
+```toml
+[functions]
+  directory = "netlify/functions"
+  included_files = ["data/**"]
 ```
 
-Do not put LLM provider keys in Netlify frontend environment variables. LLM keys belong only in the server/API deployment.
+That function mounts the Hono app at `/api/*`, so the deployed dashboard can call the API on the same origin. For a same-site Netlify deployment, `NEXT_PUBLIC_SERVER_URL` can be omitted. For local development, keep:
+
+```env
+NEXT_PUBLIC_SERVER_URL=http://localhost:3000
+```
+
+Required Netlify environment variables:
+
+```env
+DATABASE_URL=postgres://...
+BETTER_AUTH_SECRET=...
+BETTER_AUTH_URL=https://your-netlify-site.netlify.app
+CORS_ORIGIN=https://your-netlify-site.netlify.app
+NODE_ENV=production
+
+# Set at least one provider
+GEMINI_API_KEY=...
+# or
+ANTHROPIC_API_KEY=...
+# or
+AWS_BEARER_TOKEN_BEDROCK=...
+AWS_REGION=us-west-2
+```
+
+Do not expose LLM provider keys as `NEXT_PUBLIC_*` variables. They are used only by the Netlify Function/server runtime.
+
+One serverless note: the dashboard still polls the database for run progress, which works on Netlify. The in-memory SSE listener is best-effort in serverless environments because separate function invocations do not share memory.
 
 ## Hard Requirements Compliance
 

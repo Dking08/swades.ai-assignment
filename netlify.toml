@@ -5,10 +5,12 @@
 [build.environment]
   NEXT_TELEMETRY_DISABLED = "1"
 
-[[plugins]]
-  package = "@netlify/plugin-nextjs"
+[functions]
+  directory = "netlify/functions"
+  node_bundler = "esbuild"
+  included_files = ["data/**"]
 
 [dev]
-  command = "bun run dev:web"
+  command = "bun run dev"
   port = 3001
   targetPort = 3001

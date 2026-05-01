@@ -1,6 +1,15 @@
-import "dotenv/config";
+import { existsSync } from "fs";
+import { resolve } from "path";
+import { config } from "dotenv";
 import { createEnv } from "@t3-oss/env-core";
 import { z } from "zod";
+
+config();
+
+const serverEnvPath = resolve(process.cwd(), "apps/server/.env");
+if (existsSync(serverEnvPath)) {
+  config({ path: serverEnvPath, override: false });
+}
 
 export const env = createEnv({
   server: {

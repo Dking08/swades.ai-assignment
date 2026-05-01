@@ -67,6 +67,7 @@ class Semaphore {
 // ─── Active run tracking (for SSE) ─────────────────────────────────────────
 
 type EventCallback = (event: SSEEvent) => void;
+type WaitUntil = (promise: Promise<unknown>) => void;
 const activeListeners = new Map<string, Set<EventCallback>>();
 
 export function subscribeToRun(
@@ -154,12 +155,13 @@ export interface StartRunOptions {
   model: string;
   region: string;
   provider?: LLMProviderName;
+  waitUntil?: WaitUntil;
   datasetFilter?: string[]; // optional transcript IDs to filter
   force?: boolean;
 }
 
 export async function startRun(options: StartRunOptions): Promise<string> {
-  const { strategy, model, datasetFilter } = options;
+  const { strategy, model, datasetFilter, waitUntil } = options;
 
   const runId = randomUUID();
   const promptHash = computePromptHash(strategy);
@@ -183,10 +185,16 @@ export async function startRun(options: StartRunOptions): Promise<string> {
     completedCases: 0,
   });
 
-  // Run asynchronously (don't block the API response)
-  processRun(runId, transcriptIds, options).catch((err) => {
+  const runPromise = processRun(runId, transcriptIds, options).catch((err) => {
     console.error(`Run ${runId} failed:`, err);
   });
+
+  // Run asynchronously. On Netlify, waitUntil keeps this work alive after the
+  // POST response returns; in a long-lived local server, normal fire-and-forget
+  // behavior is fine.
+  if (waitUntil) {
+    waitUntil(runPromise);
+  }
 
   return runId;
 }

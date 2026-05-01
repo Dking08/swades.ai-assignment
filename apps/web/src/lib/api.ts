@@ -11,7 +11,7 @@ import type {
 } from "@test-evals/shared";
 
 export const API_BASE_URL =
-  process.env.NEXT_PUBLIC_SERVER_URL || "http://localhost:3000";
+  process.env.NEXT_PUBLIC_SERVER_URL || "";
 
 async function apiFetch<T>(path: string, options?: RequestInit): Promise<T> {
   const res = await fetch(`${API_BASE_URL}${path}`, {
