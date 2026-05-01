@@ -8,7 +8,7 @@
 import * as dotenv from "dotenv";
 import * as path from "path";
 import { readdir, readFile } from "fs/promises";
-import { extractWithRetry } from "@test-evals/llm";
+import { extractWithRetry, detectProviderFromEnv, getModelId } from "@test-evals/llm";
 import type {
   PromptStrategy,
   ClinicalExtraction,
@@ -118,8 +118,13 @@ async function main() {
     process.exit(1);
   }
 
-  const region = process.env.AWS_REGION || "us-west-2";
-  const modelId = process.env.BEDROCK_MODEL_ID || "us.anthropic.claude-haiku-4-5-20251001-v1:0";
+  // Auto-detect provider
+  const providerName = detectProviderFromEnv();
+  if (!providerName) {
+    console.error("No LLM provider configured. Set ANTHROPIC_API_KEY, AWS_BEARER_TOKEN_BEDROCK, or GEMINI_API_KEY");
+    process.exit(1);
+  }
+  const modelId = getModelId(providerName);
   const dataDir = path.resolve(__dirname, "../data");
 
   console.log("╔══════════════════════════════════════════════╗");
@@ -127,8 +132,8 @@ async function main() {
   console.log("╚══════════════════════════════════════════════╝");
   console.log();
   console.log(`  Strategy:  ${strategy}`);
+  console.log(`  Provider:  ${providerName}`);
   console.log(`  Model:     ${modelId}`);
-  console.log(`  Region:    ${region}`);
   console.log();
 
   // Load transcripts
@@ -159,7 +164,7 @@ async function main() {
       const transcript = await readFile(path.join(dataDir, "transcripts", `${id}.txt`), "utf-8");
       const gold = JSON.parse(await readFile(path.join(dataDir, "gold", `${id}.json`), "utf-8")) as ClinicalExtraction;
 
-      const result = await extractWithRetry(transcript, { region, modelId, strategy });
+      const result = await extractWithRetry(transcript, { strategy });
       totalInput += result.totalInputTokens;
       totalOutput += result.totalOutputTokens;
 
