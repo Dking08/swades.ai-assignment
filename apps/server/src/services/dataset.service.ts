@@ -3,13 +3,18 @@
  */
 import { readdir, readFile } from "fs/promises";
 import { existsSync } from "fs";
-import { join } from "path";
+import { dirname, join } from "path";
 import type { ClinicalExtraction } from "@test-evals/shared";
+
+import { fileURLToPath } from "url";
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = dirname(__filename);
 
 // Resolve data directory relative to the monorepo root
 const DATA_DIR = existsSync(join(process.cwd(), "data"))
   ? join(process.cwd(), "data")
-  : join(import.meta.dir, "../../../../data");
+  : join(__dirname, "../../../../data");
 
 export async function listTranscriptIds(): Promise<string[]> {
   const files = await readdir(join(DATA_DIR, "transcripts"));
