@@ -70,6 +70,20 @@ type EventCallback = (event: SSEEvent) => void;
 type WaitUntil = (promise: Promise<unknown>) => void;
 const activeListeners = new Map<string, Set<EventCallback>>();
 
+// ─── Cancellation tracking ─────────────────────────────────────────────────
+// Stores run IDs that have been requested to cancel.
+// Checked cooperatively between cases — never aborts an in-flight LLM call.
+const cancelledRuns = new Set<string>();
+
+/**
+ * Request cancellation of a running eval run.
+ * Returns true if the run was found and flagged, false if it wasn't active.
+ */
+export function cancelRun(runId: string): boolean {
+  cancelledRuns.add(runId);
+  return true;
+}
+
 export function subscribeToRun(
   runId: string,
   callback: EventCallback
@@ -281,6 +295,15 @@ async function processRun(
   try {
     const tasks = transcriptIds.map(async (transcriptId) => {
       await semaphore.acquire();
+
+      // ── Cooperative cancellation check ──────────────────────────────────
+      // After acquiring the semaphore (i.e., before starting the next case),
+      // check if this run has been cancelled. If so, release the slot and skip.
+      if (cancelledRuns.has(runId)) {
+        semaphore.release();
+        return;
+      }
+
       try {
         // Check idempotency
         if (!force) {
@@ -418,6 +441,21 @@ async function processRun(
 
     await Promise.all(tasks);
 
+    // If the run was cancelled, mark it as cancelled instead of completed
+    if (cancelledRuns.has(runId)) {
+      await db
+        .update(evalRuns)
+        .set({ status: "cancelled", completedCases: completedCount })
+        .where(eq(evalRuns.id, runId));
+
+      emitEvent(runId, {
+        type: "run_error",
+        run_id: runId,
+        error: "Run was cancelled by user",
+      });
+      return;
+    }
+
     // Compute final aggregates
     const aggregates = computeAggregates(allCaseData);
     const wallTimeMs = Date.now() - startTime;
@@ -460,5 +498,8 @@ async function processRun(
       run_id: runId,
       error: errorMsg,
     });
+  } finally {
+    // Always clean up the cancellation flag when a run ends (any reason).
+    cancelledRuns.delete(runId);
   }
 }

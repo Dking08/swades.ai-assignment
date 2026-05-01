@@ -20,6 +20,7 @@ import { detectProviderFromEnv, getModelId } from "@test-evals/llm";
 import {
   startRun,
   resumeRun,
+  cancelRun,
   subscribeToRun,
 } from "../services/runner.service";
 import { loadTranscript } from "../services/dataset.service";
@@ -78,6 +79,29 @@ runs.post("/runs/:id/resume", async (c) => {
     return c.json({ error: msg }, 400);
   }
 });
+
+// ─── POST /runs/:id/cancel — Request cancellation of a running run ──────────
+runs.post("/runs/:id/cancel", async (c) => {
+  const runId = c.req.param("id");
+
+  // Verify run exists and is actually running before flagging
+  const [run] = await db
+    .select({ status: evalRuns.status })
+    .from(evalRuns)
+    .where(eq(evalRuns.id, runId))
+    .limit(1);
+
+  if (!run) return c.json({ error: "Run not found" }, 404);
+  if (run.status !== "running") {
+    return c.json({ error: `Run is ${run.status}, can only cancel a running run` }, 400);
+  }
+
+  // Flag for cooperative cancellation — actual DB status update happens in processRun
+  cancelRun(runId);
+
+  return c.json({ status: "cancellation_requested", run_id: runId });
+});
+
 
 // ─── GET /runs — List all runs ─────────────────────────────────────────────
 runs.get("/runs", async (c) => {

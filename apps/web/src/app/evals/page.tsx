@@ -2,7 +2,7 @@
 
 import { useEffect, useState, useCallback } from "react";
 import { useRouter } from "next/navigation";
-import { listRuns, startNewRun, subscribeToRunStream } from "@/lib/api";
+import { listRuns, startNewRun, cancelRun, subscribeToRunStream } from "@/lib/api";
 import type { RunSummaryDTO, PromptStrategy } from "@test-evals/shared";
 
 function formatDuration(ms: number | null): string {
@@ -57,6 +57,7 @@ export default function EvalsPage() {
   const [newStrategy, setNewStrategy] = useState<PromptStrategy>("zero_shot");
   const [starting, setStarting] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [cancelling, setCancelling] = useState<string | null>(null); // runId being cancelled
 
   const fetchRuns = useCallback(async () => {
     try {
@@ -87,6 +88,20 @@ export default function EvalsPage() {
       setError(err instanceof Error ? err.message : "Failed to start run");
     } finally {
       setStarting(false);
+    }
+  };
+
+  const handleCancel = async (e: React.MouseEvent, runId: string) => {
+    // Stop the row click from navigating to the run detail page
+    e.stopPropagation();
+    setCancelling(runId);
+    try {
+      await cancelRun(runId);
+      await fetchRuns();
+    } catch (err: unknown) {
+      setError(err instanceof Error ? err.message : "Failed to cancel run");
+    } finally {
+      setCancelling(null);
     }
   };
 
@@ -194,6 +209,7 @@ export default function EvalsPage() {
                 <th className="px-4 py-3 text-right font-medium text-zinc-400">Cost</th>
                 <th className="px-4 py-3 text-right font-medium text-zinc-400">Duration</th>
                 <th className="px-4 py-3 text-right font-medium text-zinc-400">Created</th>
+                <th className="px-4 py-3" />
               </tr>
             </thead>
             <tbody>
@@ -234,6 +250,18 @@ export default function EvalsPage() {
                   </td>
                   <td className="px-4 py-3 text-right text-zinc-500 text-xs">
                     {new Date(run.created_at).toLocaleDateString()}
+                  </td>
+                  <td className="px-4 py-3 text-right">
+                    {run.status === "running" && (
+                      <button
+                        id={`cancel-run-${run.id}`}
+                        onClick={(e) => handleCancel(e, run.id)}
+                        disabled={cancelling === run.id}
+                        className="rounded-md border border-red-700/50 bg-red-900/20 px-2.5 py-1 text-xs font-medium text-red-400 hover:bg-red-900/40 hover:border-red-600 disabled:opacity-50 transition-colors"
+                      >
+                        {cancelling === run.id ? "Cancelling…" : "Cancel"}
+                      </button>
+                    )}
                   </td>
                 </tr>
               ))}

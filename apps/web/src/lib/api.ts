@@ -79,6 +79,14 @@ export async function resumeRun(
   });
 }
 
+export async function cancelRun(
+  runId: string
+): Promise<{ status: string; run_id: string }> {
+  return apiFetch(`/api/v1/runs/${runId}/cancel`, {
+    method: "POST",
+  });
+}
+
 export async function compareRuns(
   runAId: string,
   runBId: string
