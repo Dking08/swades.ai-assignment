@@ -236,8 +236,8 @@ export async function extractWithRetry(
           response: null,
           input_tokens: response.inputTokens,
           output_tokens: response.outputTokens,
-          cache_read_tokens: 0,
-          cache_write_tokens: 0,
+          cache_read_tokens: response.cacheReadTokens,
+          cache_write_tokens: response.cacheWriteTokens,
           duration_ms: durationMs,
           error: response.error ?? "No tool call returned",
         };
@@ -257,8 +257,8 @@ export async function extractWithRetry(
         response: extractedData,
         input_tokens: response.inputTokens,
         output_tokens: response.outputTokens,
-        cache_read_tokens: 0,
-        cache_write_tokens: 0,
+        cache_read_tokens: response.cacheReadTokens,
+        cache_write_tokens: response.cacheWriteTokens,
         duration_ms: durationMs,
         error: null,
       };

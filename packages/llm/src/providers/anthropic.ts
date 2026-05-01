@@ -1,6 +1,7 @@
 /**
  * Anthropic Direct API provider.
  * Uses @anthropic-ai/sdk with forced tool_choice.
+ * Implements PROMPT CACHING via cache_control on system prompt + tool definition.
  * Auth: ANTHROPIC_API_KEY env var.
  */
 import Anthropic from "@anthropic-ai/sdk";
@@ -48,13 +49,22 @@ export class AnthropicProvider implements LLMProvider {
       model: this.modelId,
       max_tokens: config?.maxTokens ?? 4096,
       temperature: config?.temperature ?? 0.0,
-      system,
+      // System prompt with cache_control for prompt caching
+      system: [
+        {
+          type: "text" as const,
+          text: system,
+          cache_control: { type: "ephemeral" as const },
+        },
+      ],
       messages: anthropicMessages,
       tools: [
         {
           name: toolSchema.name,
           description: toolSchema.description,
           input_schema: toolSchema.inputSchema as Anthropic.Tool.InputSchema,
+          // Cache the tool definition too — it's identical across all requests
+          cache_control: { type: "ephemeral" as const },
         },
       ],
       tool_choice: { type: "tool", name: toolSchema.name },
@@ -62,6 +72,9 @@ export class AnthropicProvider implements LLMProvider {
 
     const inputTokens = response.usage?.input_tokens ?? 0;
     const outputTokens = response.usage?.output_tokens ?? 0;
+    // Prompt caching tokens from Anthropic's response
+    const cacheReadTokens = (response.usage as any)?.cache_read_input_tokens ?? 0;
+    const cacheWriteTokens = (response.usage as any)?.cache_creation_input_tokens ?? 0;
 
     const toolUseBlock = response.content.find(
       (block) => block.type === "tool_use"
@@ -74,6 +87,8 @@ export class AnthropicProvider implements LLMProvider {
         rawAssistantResponse: response.content,
         inputTokens,
         outputTokens,
+        cacheReadTokens,
+        cacheWriteTokens,
         error: "No tool_use block in Anthropic response",
       };
     }
@@ -84,6 +99,8 @@ export class AnthropicProvider implements LLMProvider {
       rawAssistantResponse: response.content,
       inputTokens,
       outputTokens,
+      cacheReadTokens,
+      cacheWriteTokens,
       error: null,
     };
   }
@@ -98,7 +115,6 @@ export class AnthropicProvider implements LLMProvider {
   ): Promise<LLMProviderResponse> {
     const client = getClient(this.apiKey);
 
-    // Build full conversation with retry context
     const anthropicMessages: Anthropic.MessageParam[] = messages.map((m) => ({
       role: m.role as "user" | "assistant",
       content: m.content,
@@ -136,17 +152,27 @@ export class AnthropicProvider implements LLMProvider {
       model: this.modelId,
       max_tokens: config?.maxTokens ?? 4096,
       temperature: config?.temperature ?? 0.0,
-      system,
+      system: [
+        {
+          type: "text" as const,
+          text: system,
+          cache_control: { type: "ephemeral" as const },
+        },
+      ],
       messages: anthropicMessages,
       tools: [
         {
           name: toolSchema.name,
           description: toolSchema.description,
           input_schema: toolSchema.inputSchema as Anthropic.Tool.InputSchema,
+          cache_control: { type: "ephemeral" as const },
         },
       ],
       tool_choice: { type: "tool", name: toolSchema.name },
     });
+
+    const cacheReadTokens = (response.usage as any)?.cache_read_input_tokens ?? 0;
+    const cacheWriteTokens = (response.usage as any)?.cache_creation_input_tokens ?? 0;
 
     const toolUseBlock = response.content.find(
       (block) => block.type === "tool_use"
@@ -159,6 +185,8 @@ export class AnthropicProvider implements LLMProvider {
         rawAssistantResponse: response.content,
         inputTokens: response.usage?.input_tokens ?? 0,
         outputTokens: response.usage?.output_tokens ?? 0,
+        cacheReadTokens,
+        cacheWriteTokens,
         error: "No tool_use block in retry response",
       };
     }
@@ -169,6 +197,8 @@ export class AnthropicProvider implements LLMProvider {
       rawAssistantResponse: response.content,
       inputTokens: response.usage?.input_tokens ?? 0,
       outputTokens: response.usage?.output_tokens ?? 0,
+      cacheReadTokens,
+      cacheWriteTokens,
       error: null,
     };
   }

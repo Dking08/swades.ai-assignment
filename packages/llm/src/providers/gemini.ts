@@ -87,6 +87,8 @@ export class GeminiProvider implements LLMProvider {
           rawAssistantResponse: response,
           inputTokens,
           outputTokens,
+          cacheReadTokens: (response.usageMetadata as any)?.cachedContentTokenCount ?? 0,
+          cacheWriteTokens: 0,
           error: "No function call in Gemini response",
         };
       }
@@ -98,6 +100,8 @@ export class GeminiProvider implements LLMProvider {
         rawAssistantResponse: response,
         inputTokens,
         outputTokens,
+        cacheReadTokens: (response.usageMetadata as any)?.cachedContentTokenCount ?? 0,
+        cacheWriteTokens: 0,
         error: null,
       };
     } catch (err: unknown) {

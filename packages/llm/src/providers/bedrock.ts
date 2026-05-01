@@ -94,6 +94,8 @@ export class BedrockProvider implements LLMProvider {
         rawAssistantResponse: assistantMessage,
         inputTokens,
         outputTokens,
+        cacheReadTokens: 0,
+        cacheWriteTokens: 0,
         error: "No tool_use block in Bedrock response",
       };
     }
@@ -105,6 +107,8 @@ export class BedrockProvider implements LLMProvider {
       rawAssistantResponse: assistantMessage,
       inputTokens,
       outputTokens,
+      cacheReadTokens: 0,
+      cacheWriteTokens: 0,
       error: null,
     };
   }
@@ -191,6 +195,8 @@ export class BedrockProvider implements LLMProvider {
         rawAssistantResponse: assistantMessage,
         inputTokens: usage?.inputTokens ?? 0,
         outputTokens: usage?.outputTokens ?? 0,
+        cacheReadTokens: 0,
+        cacheWriteTokens: 0,
         error: "No tool_use block in retry response",
       };
     }
@@ -202,6 +208,8 @@ export class BedrockProvider implements LLMProvider {
       rawAssistantResponse: assistantMessage,
       inputTokens: usage?.inputTokens ?? 0,
       outputTokens: usage?.outputTokens ?? 0,
+      cacheReadTokens: 0,
+      cacheWriteTokens: 0,
       error: null,
     };
   }

@@ -35,6 +35,9 @@ export interface LLMProviderResponse {
   /** Token usage */
   inputTokens: number;
   outputTokens: number;
+  /** Prompt caching tokens (Anthropic-specific, 0 for other providers) */
+  cacheReadTokens: number;
+  cacheWriteTokens: number;
   /** Error message if something went wrong at the model level */
   error: string | null;
 }

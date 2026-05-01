@@ -111,6 +111,7 @@ async function main() {
   const args = process.argv.slice(2);
   const strategyArg = args.find((a) => a.startsWith("--strategy="))?.split("=")[1] as PromptStrategy | undefined;
   const filterArg = args.find((a) => a.startsWith("--filter="))?.split("=")[1];
+  const modelArg = args.find((a) => a.startsWith("--model="))?.split("=")[1];
 
   const strategy = strategyArg ?? "zero_shot";
   if (!PROMPT_STRATEGIES.includes(strategy)) {
@@ -124,7 +125,7 @@ async function main() {
     console.error("No LLM provider configured. Set ANTHROPIC_API_KEY, AWS_BEARER_TOKEN_BEDROCK, or GEMINI_API_KEY");
     process.exit(1);
   }
-  const modelId = getModelId(providerName);
+  const modelId = modelArg ?? getModelId(providerName);
   const dataDir = path.resolve(__dirname, "../data");
 
   console.log("╔══════════════════════════════════════════════╗");
@@ -164,7 +165,7 @@ async function main() {
       const transcript = await readFile(path.join(dataDir, "transcripts", `${id}.txt`), "utf-8");
       const gold = JSON.parse(await readFile(path.join(dataDir, "gold", `${id}.json`), "utf-8")) as ClinicalExtraction;
 
-      const result = await extractWithRetry(transcript, { strategy });
+      const result = await extractWithRetry(transcript, { strategy, modelId, provider: providerName });
       totalInput += result.totalInputTokens;
       totalOutput += result.totalOutputTokens;
 
