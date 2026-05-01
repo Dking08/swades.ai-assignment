@@ -16,6 +16,7 @@ import type {
   CompareFieldDelta,
 } from "@test-evals/shared";
 import { PROMPT_STRATEGIES } from "@test-evals/shared";
+import { detectProviderFromEnv, getModelId } from "@test-evals/llm";
 import {
   startRun,
   resumeRun,
@@ -38,22 +39,29 @@ runs.post("/runs", async (c) => {
     return c.json({ error: `Invalid strategy. Must be one of: ${PROMPT_STRATEGIES.join(", ")}` }, 400);
   }
 
+  const providerName = detectProviderFromEnv();
+  if (!providerName) {
+    return c.json({ error: "No LLM provider configured. Set ANTHROPIC_API_KEY, AWS_BEARER_TOKEN_BEDROCK, or GEMINI_API_KEY" }, 500);
+  }
+
+  const modelId = body.model ?? getModelId(providerName);
+
   const runId = await startRun({
     strategy: body.strategy,
-    model: body.model ?? env.BEDROCK_MODEL_ID,
+    model: modelId,
     region: env.AWS_REGION,
     datasetFilter: body.dataset_filter,
     force: body.force,
   });
 
-  return c.json({ run_id: runId }, 201);
+  return c.json({ run_id: runId, provider: providerName, model: modelId }, 201);
 });
 
 // ─── POST /runs/:id/resume — Resume a crashed/failed run ──────────────────
 runs.post("/runs/:id/resume", async (c) => {
   const runId = c.req.param("id");
   try {
-    await resumeRun(runId, env.AWS_REGION);
+    await resumeRun(runId, env.AWS_REGION ?? "us-west-2");
     return c.json({ status: "resumed" });
   } catch (err: unknown) {
     const msg = err instanceof Error ? err.message : String(err);

@@ -119,7 +119,8 @@ async function withRateLimitRetry<T>(
         msg.includes("ThrottlingException") ||
         msg.includes("429") ||
         msg.includes("Too many requests") ||
-        msg.includes("Rate exceeded");
+        msg.includes("Rate exceeded") ||
+        msg.includes("RESOURCE_EXHAUSTED");
 
       if (!isRateLimit || i === maxRetries) throw err;
 
@@ -297,7 +298,7 @@ async function processRun(
 
         // Extract with retry + rate limit backoff
         const result = await withRateLimitRetry(() =>
-          extractWithRetry(transcript, { region, modelId: model, strategy })
+          extractWithRetry(transcript, { strategy })
         );
 
         totalInputTokens += result.totalInputTokens;
