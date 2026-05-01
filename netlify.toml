@@ -1,6 +1,7 @@
 [build]
   base = "apps/web"
   command = "bun run build"
+  publish = ".next"
 
 [build.environment]
   NEXT_TELEMETRY_DISABLED = "1"
