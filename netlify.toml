@@ -9,6 +9,11 @@
 [[plugins]]
   package = "@netlify/plugin-nextjs"
 
+[functions]
+  node_bundler = "esbuild"
+  # data dir lives at repo-root/data; base is apps/web so ../../data
+  included_files = ["../../data/**"]
+
 [[redirects]]
   from = "/api/*"
   to = "/.netlify/functions/api"

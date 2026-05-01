@@ -4,17 +4,31 @@
 import { readdir, readFile } from "fs/promises";
 import { existsSync } from "fs";
 import { dirname, join } from "path";
+import { fileURLToPath } from "url";
 import type { ClinicalExtraction } from "@test-evals/shared";
 
-import { fileURLToPath } from "url";
+// Resolve __dirname in a way that works in both ESM (Bun) and CJS (esbuild/Netlify).
+// In CJS bundles, __dirname is injected by the bundler.
+// In ESM, import.meta.url is defined; import.meta.dir is Bun-only.
+function getThisDir(): string {
+  // CJS path (esbuild output, Netlify functions)
+  if (typeof __dirname !== "undefined") return __dirname;
+  // ESM path (Bun, native Node ESM)
+  if (typeof import.meta?.url === "string") {
+    return dirname(fileURLToPath(import.meta.url));
+  }
+  return process.cwd();
+}
 
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = dirname(__filename);
-
-// Resolve data directory relative to the monorepo root
-const DATA_DIR = existsSync(join(process.cwd(), "data"))
-  ? join(process.cwd(), "data")
-  : join(__dirname, "../../../../data");
+// Resolve data directory — try CWD first (local dev), then relative to this file (deployed)
+const DATA_DIR = (() => {
+  const cwd = join(process.cwd(), "data");
+  if (existsSync(cwd)) return cwd;
+  const rel = join(getThisDir(), "../../../../data");
+  if (existsSync(rel)) return rel;
+  // Netlify: data files are included next to the bundled function
+  return join(getThisDir(), "data");
+})();
 
 export async function listTranscriptIds(): Promise<string[]> {
   const files = await readdir(join(DATA_DIR, "transcripts"));
