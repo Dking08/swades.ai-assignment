@@ -1,16 +1,11 @@
 [build]
-  command = "bun run build:web"
-  publish = "apps/web/.next"
+  base = "apps/web"
+  command = "bun run build"
+  # publish is intentionally omitted so the Netlify Next.js plugin can auto-configure it
 
 [build.environment]
   NEXT_TELEMETRY_DISABLED = "1"
 
 [functions]
-  directory = "netlify/functions"
   node_bundler = "esbuild"
-  included_files = ["data/**"]
-
-[dev]
-  command = "bun run dev"
-  port = 3001
-  targetPort = 3001
+  included_files = ["../../data/**"]

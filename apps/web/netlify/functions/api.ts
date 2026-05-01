@@ -1,4 +1,4 @@
-import app from "../../apps/server/src/index";
+import app from "../../../server/src/index";
 
 type NetlifyContext = {
   waitUntil?: (promise: Promise<unknown>) => void;
